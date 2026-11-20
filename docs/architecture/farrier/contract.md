@@ -13,6 +13,7 @@ updater it already has, and no host needs a manual step.
 | When | one release per commit, after CI ends green on a push to a release branch |
 | Tag on `main` | `build-<sha7>`; a normal release, kept |
 | Tag on another branch | `build-<branch>-<sha7>`; a prerelease, pruned by the workflow after 14 days |
+| Tag its caller names | a version-pinned tool, which no daemon follows by branch, tags its releases `v<version>`; assets, `SHA256SUMS`, the signature and its trusted comment `<owner>/<repo> <tag> <sha40>` are unchanged |
 | Target | the commit; `<sha7>` is its first 7 hex characters |
 | Never | an asset changed or added after the release is published |
 
