@@ -1,0 +1,117 @@
+frozen = ["ci/cap.toml"]
+
+[[collect]]
+dir = "ci/cap.d"
+glob = "*.toml"
+
+[[collect]]
+dir = "fixtures/releases"
+glob = "*/case.toml"
+
+[[collect]]
+dir = "ci/lint-fixtures/rust"
+glob = "*.rs"
+
+[[collect]]
+dir = "skill/farrier"
+glob = "*.md"
+
+[comments]
+policy = "strict"
+except = ["ci/lint-fixtures/**"]
+
+[docs]
+paths = ["docs/*.md", "README.md", "skill/farrier/*.md"]
+skip = [".drover/**"]
+
+[[size]]
+paths = ["crates/*/src/**/*.rs"]
+max_file_lines = 400
+max_fn_lines = 60
+
+[[ban]]
+pattern = "Command::new"
+paths = ["crates/*/src/**"]
+except = ["crates/farrier-service/src/ctl.rs", "crates/farrier-update/src/tool.rs"]
+reason = "#1: processes start only in ctl (launchctl, systemctl) and tool (git, curl, codesign, a staged binary)"
+
+[[ban]]
+pattern = "thread::sleep"
+paths = ["crates/*/src/**"]
+except = ["crates/farrier-service/src/ctl.rs", "crates/farrier-update/src/tool.rs"]
+reason = "#1: only ctl and tool wait, so every other module is tested without a clock"
+
+[[ban]]
+pattern = "target_os"
+paths = ["crates/*/src/**"]
+except = ["crates/farrier-service/src/env.rs", "crates/farrier-update/src/id.rs"]
+reason = "#1: the platform is a value (Env, Target), so every OS compiles and tests both"
+
+[[layer]]
+name = "job"
+paths = ["crates/farrier-service/src/job.rs"]
+mods = ["crate::job"]
+
+[[layer]]
+name = "env"
+paths = ["crates/farrier-service/src/env.rs"]
+mods = ["crate::env"]
+
+[[layer]]
+name = "render"
+paths = ["crates/farrier-service/src/render/**"]
+mods = ["crate::render"]
+may_use = ["job"]
+
+[[layer]]
+name = "ctl"
+paths = ["crates/farrier-service/src/ctl.rs"]
+mods = ["crate::ctl"]
+may_use = ["job"]
+
+[[layer]]
+name = "service"
+paths = ["crates/farrier-service/src/service.rs"]
+mods = ["crate::service", "farrier_service"]
+may_use = ["job", "env", "render", "ctl"]
+
+[[layer]]
+name = "id"
+paths = ["crates/farrier-update/src/id.rs"]
+mods = ["crate::id"]
+
+[[layer]]
+name = "contract"
+paths = ["crates/farrier-update/src/contract.rs"]
+mods = ["crate::contract", "farrier_update::contract"]
+may_use = ["id"]
+
+[[layer]]
+name = "tool"
+paths = ["crates/farrier-update/src/tool.rs"]
+mods = ["crate::tool"]
+may_use = ["id"]
+
+[[layer]]
+name = "stage"
+paths = ["crates/farrier-update/src/stage.rs"]
+mods = ["crate::stage"]
+may_use = ["id", "contract", "tool"]
+
+[[layer]]
+name = "swap"
+paths = ["crates/farrier-update/src/swap.rs"]
+mods = ["crate::swap"]
+may_use = ["id"]
+
+[[layer]]
+name = "state"
+paths = ["crates/farrier-update/src/state.rs"]
+mods = ["crate::state"]
+may_use = ["id"]
+
+[[layer]]
+name = "updater"
+paths = ["crates/farrier-update/src/updater/**"]
+mods = ["crate::updater", "farrier_update"]
+may_use = ["id", "contract", "tool", "stage", "swap", "state", "service"]

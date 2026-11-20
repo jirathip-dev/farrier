@@ -1,0 +1,9 @@
+name: ci
+on:
+  pull_request:
+  push:
+    branches: [staging, main]
+
+jobs:
+  arch-check:
+    uses: jirathip-dev/drover/.github/workflows/arch-check.yml@staging
