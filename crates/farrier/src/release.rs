@@ -1,5 +1,6 @@
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::time::Duration;
 
 use farrier_update::contract::{self, Reject, Release, SUMS, SUMS_SIG, Sums};
 use farrier_update::id::{Build, Channel, Os, Target};
@@ -116,16 +117,8 @@ fn staged(args: &Args, target: Target, exe: &Path) -> Result<(), Reject> {
     if target.os == Os::MacOs {
         tool::codesign(exe, &args.bin).map_err(Reject::CodeSign)?;
     }
-    let out = tool::version(exe).map_err(Reject::Version)?;
-    match contract::version(&out) {
-        Some(build) if build.matches(&args.sha) => Ok(()),
-        _ => Err(Reject::Version(format!(
-            "{} --version names no build {}: '{}'",
-            exe.display(),
-            args.sha,
-            out.trim()
-        ))),
-    }
+    let out = tool::version(exe, Duration::from_secs(10)).map_err(Reject::Version)?;
+    contract::names(&out, &args.sha)
 }
 
 /// `farrier release verify`: checks 2 to 6 of the release contract on a release folder.

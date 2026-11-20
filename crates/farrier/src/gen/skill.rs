@@ -8,7 +8,23 @@ pub const FILES: &[(&str, &str)] = &[
         include_str!("../../../../skill/farrier/contract.md"),
     ),
     (
+        "examples/cli.md",
+        include_str!("../../../../skill/farrier/examples/cli.md"),
+    ),
+    (
+        "examples/daemon.md",
+        include_str!("../../../../skill/farrier/examples/daemon.md"),
+    ),
+    (
+        "examples/rollout.md",
+        include_str!("../../../../skill/farrier/examples/rollout.md"),
+    ),
+    (
         "service.md",
         include_str!("../../../../skill/farrier/service.md"),
+    ),
+    (
+        "update.md",
+        include_str!("../../../../skill/farrier/update.md"),
     ),
 ];

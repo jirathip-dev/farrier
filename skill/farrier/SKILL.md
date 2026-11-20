@@ -15,12 +15,12 @@ your `deny.toml`.
 | copy this skill into a repo | `farrier skill --to <dir>`, which writes `<dir>/farrier/` |
 | check a release folder before it is published | `farrier release verify` |
 
-## Status
+## Pages
 
-`farrier-service` is in: [service.md](service.md) has each `Job` field, the plist and unit keys it writes, and
-the verbs. `farrier release verify` and the release contract are in ([contract.md](contract.md)); `farrier-update`
-holds the contract (`contract`, `id`). The rest of `farrier-update` lands in a later release. This
-page grows with each.
+- [service.md](service.md): each `Job` field, the plist and unit keys it writes, and the verbs.
+- [update.md](update.md): `Daemon`, every `Outcome` line, the state files, the phases.
+- [contract.md](contract.md): the release layout and `farrier release verify`.
+- `examples/`: [a daemon](examples/daemon.md), [a plain CLI](examples/cli.md), [a rollout](examples/rollout.md).
 
 ## Rules for callers
 
