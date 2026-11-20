@@ -36,7 +36,11 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - uses: taiki-e/install-action@v2
         with:
-          tool: just@1.59.0,cargo-deny@0.22.0,actionlint@1.7.12
+          tool: just@1.59.0,cargo-deny@0.22.0
+      - name: actionlint (pinned release)
+        run: |
+          bash <(curl -sSfL https://raw.githubusercontent.com/rhysd/actionlint/v1.7.12/scripts/download-actionlint.bash) 1.7.12 "$RUNNER_TEMP/bin"
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
       - name: drover (pinned release build, for arch-check)
         env:
           ASSET: ${{ matrix.drover }}
