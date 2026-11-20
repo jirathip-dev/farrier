@@ -348,54 +348,23 @@ impl Service {
     }
 
     fn probe(&self) -> Result<Status, Error> {
-        let mut live = Status {
-            files: Files::Missing,
-            loaded: false,
-            pid: None,
-            refused: None,
-        };
+        let mut live = ctl::Live::default();
         for cmd in self.cmds(Verb::Probe) {
             let said = self.run(&cmd)?;
-            match self.env.platform {
-                Platform::Launchd if said.ok => {
-                    let lines = || said.text.lines().map(str::trim);
-                    live.loaded = true;
-                    live.pid = lines().find_map(|l| l.strip_prefix("pid = ")?.parse().ok());
-                    live.refused = (lines())
-                        .find(|l| l.contains("spawn failed") || l.contains("OS_REASON_CODESIGNING"))
-                        .map(str::to_owned);
-                }
-                Platform::Launchd => {}
-                Platform::Systemd if !said.ok => {
+            live = match self.env.platform {
+                Platform::Launchd => ctl::Live::launchd(&said),
+                Platform::Systemd if said.ok => ctl::Live::systemd(&said.text, self.timer()),
+                Platform::Systemd => {
                     return Err(Error::Ctl(cmd.join(" "), said.text.trim().to_owned()));
                 }
-                Platform::Systemd => self.systemd_probe(&said.text, &mut live),
-            }
+            };
         }
-        Ok(live)
-    }
-
-    fn systemd_probe(&self, text: &str, live: &mut Status) {
-        let field = |block: &str, key: &str| {
-            let value = block
-                .lines()
-                .find_map(|l| l.strip_prefix(key)?.strip_prefix('='));
-            value.unwrap_or_default().to_owned()
-        };
-        let mut blocks = text.split("\n\n");
-        let service = blocks.next().unwrap_or_default();
-        let state = field(service, "ActiveState");
-        live.loaded = if self.timer() {
-            field(blocks.next().unwrap_or_default(), "ActiveState") == "active"
-        } else {
-            matches!(state.as_str(), "active" | "activating" | "reloading")
-        };
-        live.pid = field(service, "MainPID")
-            .parse()
-            .ok()
-            .filter(|pid| *pid != 0);
-        live.refused =
-            (state == "failed").then(|| format!("failed ({})", field(service, "Result")));
+        Ok(Status {
+            files: Files::Missing,
+            loaded: live.loaded,
+            pid: live.pid,
+            refused: live.refused,
+        })
     }
 }
 
