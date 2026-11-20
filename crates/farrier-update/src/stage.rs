@@ -50,12 +50,8 @@ pub struct Fetch<'a> {
     pub limit: Duration,
 }
 
-pub enum Got {
-    Waiting(String),
-    Staged(Staged),
-}
-
 pub enum Stop {
+    Waiting(String),
     Missing(String),
     Rejected(Reject),
 }
@@ -79,10 +75,10 @@ impl Fetch<'_> {
     }
 
     /// Checks 2 to 6 of the release contract; leaves the verified executable at `to`, or nothing.
-    pub fn run(&self, to: &Path, probe: Duration) -> Result<Got, Stop> {
+    pub fn run(&self, to: &Path, probe: Duration) -> Result<Staged, Stop> {
         let tag = self.channel.tag(self.build);
         let (Some(sums), Some(sig)) = (self.get(&tag, SUMS)?, self.get(&tag, SUMS_SIG)?) else {
-            return Ok(Got::Waiting(format!("{tag} has no {SUMS} yet")));
+            return Err(Stop::Waiting(format!("{tag} has no {SUMS} yet")));
         };
         let name = self.target.asset(self.product.bin);
         let sums = self.sums(&tag, sums, &sig, &name)?;
@@ -95,7 +91,7 @@ impl Fetch<'_> {
         if staged.is_err() {
             fs::remove_file(to).ok();
         }
-        Ok(Got::Staged(staged?))
+        Ok(staged?)
     }
 
     fn sums(&self, tag: &str, sums: Vec<u8>, sig: &[u8], name: &str) -> Result<Sums, Reject> {

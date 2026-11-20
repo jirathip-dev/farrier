@@ -75,9 +75,6 @@ fn string(c: &mut Peekable<Chars>) -> Option<String> {
         match c.next()? {
             '"' => return Some(out),
             '\\' => out.push(match c.next()? {
-                'n' => '\n',
-                't' => '\t',
-                'r' => '\r',
                 'u' => {
                     char::from_u32(u32::from_str_radix(&c.take(4).collect::<String>(), 16).ok()?)?
                 }

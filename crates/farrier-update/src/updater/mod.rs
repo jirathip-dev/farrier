@@ -3,7 +3,7 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use crate::contract::{self, Reject};
 use crate::id::{Build, Channel, Target};
-use crate::stage::{Fetch, Got, Limits, Product, Staged, Stop};
+use crate::stage::{Fetch, Limits, Product, Staged, Stop};
 use crate::state::{self, Resting, State};
 use crate::swap;
 use crate::tool::{self, Fail};
@@ -44,8 +44,8 @@ pub fn fetch(
         limit: limits.download,
     };
     match fetch.run(to, limits.probe) {
-        Ok(Got::Staged(staged)) => Ok(staged),
-        Ok(Got::Waiting(why)) => Err(Reject::NoAsset(why)),
+        Ok(staged) => Ok(staged),
+        Err(Stop::Waiting(why)) => Err(Reject::NoAsset(why)),
         Err(Stop::Rejected(reject)) => Err(reject),
         Err(Stop::Missing(why)) => Err(Reject::Download(why)),
     }
@@ -151,11 +151,11 @@ impl<'a> Updater<'a> {
             limit: self.limits.download,
         };
         match fetch.run(&path, self.limits.probe) {
-            Ok(Got::Staged(staged)) => {
+            Ok(staged) => {
                 st.resting = Resting::Staged(staged.build.clone());
                 Ok(Ok(staged))
             }
-            Ok(Got::Waiting(why)) => Ok(Err(Outcome::Waiting {
+            Err(Stop::Waiting(why)) => Ok(Err(Outcome::Waiting {
                 tag: self.channel.tag(to),
                 why,
             })),
