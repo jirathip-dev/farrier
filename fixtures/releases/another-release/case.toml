@@ -1,0 +1,3 @@
+reject = "Signature"
+key = "release"
+signed = "example/fx build-89abcde 89abcde0123456789abcdef0123456789abcdef0"

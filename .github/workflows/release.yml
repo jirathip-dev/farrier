@@ -1,0 +1,137 @@
+name: release
+on:
+  workflow_run:
+    workflows: [ci]
+    types: [completed]
+    branches: [main, staging]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.event.workflow_run.head_sha }}
+
+env:
+  SHA: ${{ github.event.workflow_run.head_sha }}
+  BRANCH: ${{ github.event.workflow_run.head_branch }}
+  REPO: ${{ github.repository }}
+
+jobs:
+  build:
+    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            triple: aarch64-apple-darwin
+          - os: ubuntu-latest
+            triple: x86_64-unknown-linux-gnu
+    runs-on: ${{ matrix.os }}
+    environment: release
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.SHA }}
+      - uses: dtolnay/rust-toolchain@1.100.0
+      - name: tag
+        run: |
+          if [ "$BRANCH" = main ]; then tag="build-${SHA:0:7}"; else tag="build-$BRANCH-${SHA:0:7}"; fi
+          echo "TAG=$tag" >> "$GITHUB_ENV"
+      - name: build
+        env:
+          FARRIER_BUILD: ${{ env.SHA }}
+          TRIPLE: ${{ matrix.triple }}
+        run: |
+          cargo build --release --locked -p farrier
+          mkdir dist
+          cp target/release/farrier "dist/farrier-$TRIPLE"
+      - name: sign and notarize (macOS)
+        if: runner.os == 'macOS'
+        env:
+          CERT_P12: ${{ secrets.MACOS_CERT_P12 }}
+          CERT_PASSWORD: ${{ secrets.MACOS_CERT_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
+          TRIPLE: ${{ matrix.triple }}
+        run: |
+          keychain="$RUNNER_TEMP/release.keychain-db"
+          printf '%s' "$CERT_P12" | base64 --decode > "$RUNNER_TEMP/cert.p12"
+          security create-keychain -p "$CERT_PASSWORD" "$keychain"
+          security set-keychain-settings -lut 3600 "$keychain"
+          security unlock-keychain -p "$CERT_PASSWORD" "$keychain"
+          security import "$RUNNER_TEMP/cert.p12" -k "$keychain" -P "$CERT_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$CERT_PASSWORD" "$keychain"
+          security list-keychains -d user -s "$keychain"
+          rm -f "$RUNNER_TEMP/cert.p12"
+          codesign --force --timestamp --options runtime --identifier farrier \
+            --keychain "$keychain" --sign "Developer ID Application" "dist/farrier-$TRIPLE"
+          ditto -c -k "dist/farrier-$TRIPLE" "$RUNNER_TEMP/farrier.zip"
+          xcrun notarytool submit "$RUNNER_TEMP/farrier.zip" --wait \
+            --apple-id "$APPLE_ID" --team-id "$APPLE_TEAM_ID" --password "$APPLE_APP_PASSWORD"
+      - name: farrier release verify (this asset)
+        env:
+          TRIPLE: ${{ matrix.triple }}
+        run: |
+          "dist/farrier-$TRIPLE" release verify dist --repo "$REPO" --tag "$TAG" --sha "$SHA" \
+            --bin farrier --key release.pub --key release-backup.pub
+      - uses: actions/upload-artifact@v4
+        with:
+          name: farrier-${{ matrix.triple }}
+          path: dist/farrier-${{ matrix.triple }}
+          if-no-files-found: error
+
+  publish:
+    needs: build
+    if: always() && needs.build.result != 'skipped' && needs.build.result != 'cancelled'
+    runs-on: ubuntu-latest
+    environment: release
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.SHA }}
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          pattern: farrier-*
+          merge-multiple: true
+      - name: SHA256SUMS
+        run: |
+          if [ "$BRANCH" = main ]; then tag="build-${SHA:0:7}"; else tag="build-$BRANCH-${SHA:0:7}"; fi
+          echo "TAG=$tag" >> "$GITHUB_ENV"
+          test -f dist/farrier-x86_64-unknown-linux-gnu
+          chmod +x dist/farrier-*
+          (cd dist && sha256sum farrier-* > SHA256SUMS)
+      - name: sign SHA256SUMS
+        env:
+          MINISIGN_SECRET_KEY: ${{ secrets.MINISIGN_SECRET_KEY }}
+        run: |
+          sudo apt-get install -y minisign
+          umask 077
+          printf '%s\n' "$MINISIGN_SECRET_KEY" > "$RUNNER_TEMP/release.key"
+          minisign -S -s "$RUNNER_TEMP/release.key" -m dist/SHA256SUMS -t "$REPO $TAG $SHA"
+          rm -f "$RUNNER_TEMP/release.key"
+      - name: farrier release verify (the release)
+        run: |
+          dist/farrier-x86_64-unknown-linux-gnu release verify dist --repo "$REPO" --tag "$TAG" --sha "$SHA" \
+            --bin farrier --key release.pub --key release-backup.pub
+      - name: publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          pre=()
+          if [ "$BRANCH" != main ]; then pre=(--prerelease); fi
+          gh release create "$TAG" dist/* --repo "$REPO" --target "$SHA" --title "$TAG" --notes "$SHA" "${pre[@]}"
+      - name: prune prereleases older than 14 days
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cutoff=$(date -u -d '14 days ago' +%Y-%m-%dT%H:%M:%SZ)
+          gh release list --repo "$REPO" --limit 200 --json tagName,isPrerelease,createdAt \
+            --jq ".[] | select(.isPrerelease and .createdAt < \"$cutoff\") | .tagName" |
+            while read -r tag; do gh release delete "$tag" --repo "$REPO" --cleanup-tag --yes; done
