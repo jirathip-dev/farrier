@@ -1,10 +1,5 @@
-use std::fmt;
-use std::io;
 use std::path::{Path, PathBuf};
-use std::process::ExitCode;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
-
-use farrier_service::Service;
 
 use crate::contract::{self, Reject};
 use crate::id::{Build, Channel, Target};
@@ -13,188 +8,18 @@ use crate::state::{self, Resting, State};
 use crate::swap;
 use crate::tool::{self, Fail};
 
+mod daemon;
+mod outcome;
 pub mod phase;
+
+pub use daemon::{Daemon, NoDaemon, Restarted, Supervised};
+pub use outcome::{Builds, Error, Outcome};
 
 /// The live executable, and the folder of `state.json`, `lock` and `paused`.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Install {
     pub exe: PathBuf,
     pub state: PathBuf,
-}
-
-/// The consumer's part: may a build take over, put it in service, does it serve.
-pub trait Daemon {
-    /// May `staged` take over now; `Err` says why not yet.
-    fn admit(&self, _staged: &Staged) -> Result<(), String> {
-        Ok(())
-    }
-    /// Puts the swapped-in build in service, now or by a later pass.
-    fn restart(&self, to: &Build) -> Result<Restarted, String>;
-    /// True when `to` answers as the serving build.
-    fn serves(&self, to: &Build) -> bool;
-}
-
-/// Whether a restart took effect, or waits for a later pass and why.
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum Restarted {
-    Now,
-    Later(String),
-}
-
-/// A daemon that is a farrier [`Service`]: restart the job, then ask `probe`.
-pub struct Supervised<'a, F> {
-    service: &'a Service,
-    probe: F,
-}
-
-impl<'a, F: Fn(&Build) -> bool> Supervised<'a, F> {
-    /// Restarts through `service`; `probe` says whether a build serves.
-    pub fn new(service: &'a Service, probe: F) -> Self {
-        Self { service, probe }
-    }
-}
-
-impl<F: Fn(&Build) -> bool> Daemon for Supervised<'_, F> {
-    fn restart(&self, _: &Build) -> Result<Restarted, String> {
-        let restarted = self.service.restart().map_err(|e| e.to_string());
-        restarted.map(|()| Restarted::Now)
-    }
-
-    fn serves(&self, to: &Build) -> bool {
-        (self.probe)(to)
-    }
-}
-
-/// A plain CLI: nothing to restart, the new file is the update.
-pub struct NoDaemon;
-
-impl Daemon for NoDaemon {
-    fn restart(&self, _: &Build) -> Result<Restarted, String> {
-        Ok(Restarted::Now)
-    }
-
-    fn serves(&self, _: &Build) -> bool {
-        true
-    }
-}
-
-/// Every way a pass ends; its `Display` is the one line a tool prints.
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum Outcome {
-    Paused {
-        since: u64,
-    },
-    Resumed,
-    Current(Build),
-    Waiting {
-        tag: String,
-        why: String,
-    },
-    Skipped {
-        build: Build,
-        why: String,
-    },
-    Rejected(Reject),
-    Staged(Build),
-    Deferred {
-        build: Build,
-        why: String,
-    },
-    Pending {
-        build: Build,
-        why: String,
-    },
-    Updated {
-        from: Option<Build>,
-        to: Build,
-    },
-    RolledBack {
-        to: Build,
-        why: String,
-        serving: bool,
-    },
-    Would(Box<Outcome>),
-}
-
-impl Outcome {
-    fn ok(&self) -> bool {
-        match self {
-            Self::Rejected(_) | Self::RolledBack { .. } | Self::Skipped { .. } => false,
-            Self::Would(inner) => inner.ok(),
-            _ => true,
-        }
-    }
-
-    /// Nonzero for a rejected, rolled back or skipped build.
-    pub fn exit(&self) -> ExitCode {
-        if self.ok() {
-            ExitCode::SUCCESS
-        } else {
-            ExitCode::FAILURE
-        }
-    }
-}
-
-impl fmt::Display for Outcome {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Paused { since } => write!(f, "paused since {since}"),
-            Self::Resumed => f.write_str("resumed"),
-            Self::Current(build) => write!(f, "current: {build}"),
-            Self::Waiting { tag, why } => write!(f, "waiting for {tag}: {why}"),
-            Self::Skipped { build, why } => write!(f, "skipped {build}: {why}"),
-            Self::Rejected(reject) => write!(f, "rejected: {reject}"),
-            Self::Staged(build) => write!(f, "staged {build}"),
-            Self::Deferred { build, why } => write!(f, "deferred {build}: {why}"),
-            Self::Pending { build, why } => write!(f, "pending {build}: {why}"),
-            Self::Updated {
-                from: Some(from),
-                to,
-            } => write!(f, "updated {from} -> {to}"),
-            Self::Updated { from: None, to } => write!(f, "updated a dev build -> {to}"),
-            Self::RolledBack { to, why, serving } => {
-                let now = if *serving { "serves" } else { "does not serve" };
-                write!(f, "rolled back {to}: {why}; the previous build {now}")
-            }
-            Self::Would(inner) => write!(f, "would: {inner}"),
-        }
-    }
-}
-
-/// The live build and the staged one, each when known.
-#[derive(Clone, Debug, Default, PartialEq, Eq)]
-pub struct Builds {
-    pub live: Option<Build>,
-    pub staged: Option<Build>,
-}
-
-/// A pass that could not run: the state folder, the lock, a missing tool, a refused swap, a bad reply.
-#[derive(Debug)]
-pub enum Error {
-    State(io::Error),
-    Busy,
-    Tool(String),
-    Refused(String),
-    Reply(String),
-}
-
-impl fmt::Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::State(e) => write!(f, "the update state: {e}"),
-            Self::Busy => f.write_str("another update pass holds the lock"),
-            Self::Tool(why) | Self::Refused(why) => f.write_str(why),
-            Self::Reply(why) => write!(f, "phase reply: {why}"),
-        }
-    }
-}
-
-impl std::error::Error for Error {}
-
-impl From<io::Error> for Error {
-    fn from(e: io::Error) -> Self {
-        Self::State(e)
-    }
 }
 
 fn now() -> u64 {
