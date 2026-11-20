@@ -4,6 +4,60 @@ on:
   push:
     branches: [staging, main]
 
+permissions:
+  contents: read
+
+env:
+  DROVER_BUILD: build-377464e
+
 jobs:
-  arch-check:
-    uses: jirathip-dev/drover/.github/workflows/arch-check.yml@staging
+  check:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            drover: drover-x86_64-unknown-linux-gnu
+            drover_sha256: ea50e80752fa33b3dccef96f16dc7225171135530fd551fc9856e3e445440aa5
+          - os: macos-latest
+            drover: drover-aarch64-apple-darwin
+            drover_sha256: 3f8aacefe1a1c0d8e69b1f67e139ddf34a8ba539a4d8e7dc0bde1d645b24cb64
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    steps:
+      - name: job start, for the ci-job budget
+        run: echo "FARRIER_JOB_START=$(date +%s)" >> "$GITHUB_ENV"
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - uses: dtolnay/rust-toolchain@1.100.0
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: just@1.59.0,cargo-deny@0.22.0
+      - name: actionlint (pinned release)
+        run: |
+          mkdir -p "$RUNNER_TEMP/bin"
+          bash <(curl -sSfL https://raw.githubusercontent.com/rhysd/actionlint/v1.7.12/scripts/download-actionlint.bash) 1.7.12 "$RUNNER_TEMP/bin"
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+      - name: drover (pinned release build, for arch-check)
+        env:
+          ASSET: ${{ matrix.drover }}
+          SHA256: ${{ matrix.drover_sha256 }}
+        run: |
+          curl -sSfL -o "$RUNNER_TEMP/drover" "https://github.com/jirathip-dev/drover/releases/download/$DROVER_BUILD/$ASSET"
+          echo "$SHA256  $RUNNER_TEMP/drover" | shasum -a 256 -c -
+          chmod +x "$RUNNER_TEMP/drover"
+          echo "DROVER=$RUNNER_TEMP/drover" >> "$GITHUB_ENV"
+      - name: just check
+        env:
+          BODY: ${{ github.event.pull_request.body }}
+          EVENT: ${{ github.event_name }}
+        run: |
+          if [ "$EVENT" = pull_request ]; then
+            printf '%s' "$BODY" > "$RUNNER_TEMP/pr-body.md"
+            export BASE=HEAD^1 PR_BODY="$RUNNER_TEMP/pr-body.md"
+          fi
+          just check

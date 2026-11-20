@@ -1,0 +1,6 @@
+[seconds]
+test-farrier-service = 5
+test-farrier-update = 15
+test-farrier = 5
+check = 90
+ci-job = 300
