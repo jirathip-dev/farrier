@@ -17,8 +17,9 @@ your `deny.toml`.
 
 ## Status
 
-The crates are empty: `farrier-service` and `farrier-update` land in later releases, and `farrier release verify`
-with the release contract. This page grows with each.
+`farrier release verify` and the release contract are in ([contract.md](contract.md)); `farrier-update` holds
+the contract (`contract`, `id`). `farrier-service` and the rest of `farrier-update` land in later releases. This
+page grows with each.
 
 ## Rules for callers
 
