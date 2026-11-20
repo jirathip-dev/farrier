@@ -1,9 +1,8 @@
 use std::ffi::OsString;
+use std::io;
 use std::os::unix::fs::MetadataExt;
 use std::path::PathBuf;
 use std::time::Duration;
-
-use crate::job::Error;
 
 /// Which job manager a host runs.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -25,23 +24,25 @@ pub struct Env {
 
 impl Env {
     /// This host: its platform, `HOME`, `XDG_CONFIG_HOME`, the home folder's owner and `PATH`.
-    pub fn host() -> Result<Self, Error> {
+    pub fn host() -> io::Result<Self> {
         let platform = if cfg!(target_os = "macos") {
             Platform::Launchd
         } else if cfg!(target_os = "linux") {
             Platform::Systemd
         } else {
-            return Err(Error::Host("neither launchd nor systemd".to_owned()));
+            return Err(io::Error::new(
+                io::ErrorKind::Unsupported,
+                "neither launchd nor systemd",
+            ));
         };
         let absolute = |key| {
             std::env::var_os(key)
                 .map(PathBuf::from)
                 .filter(|p| p.is_absolute())
         };
-        let home = absolute("HOME").ok_or_else(|| Error::Host("HOME is not set".to_owned()))?;
-        let uid = std::fs::metadata(&home)
-            .map_err(|e| Error::Io(home.clone(), e))?
-            .uid();
+        let home = absolute("HOME")
+            .ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, "HOME is not set"))?;
+        let uid = std::fs::metadata(&home)?.uid();
         Ok(Self {
             platform,
             config_home: absolute("XDG_CONFIG_HOME").unwrap_or_else(|| home.join(".config")),

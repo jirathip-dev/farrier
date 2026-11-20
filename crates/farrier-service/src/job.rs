@@ -172,7 +172,7 @@ pub enum Error {
     Label(String),
     Program(String),
     Time(String),
-    Host(String),
+    Host(io::Error),
     Io(PathBuf, io::Error),
     Ctl(String, String),
 }
@@ -191,3 +191,9 @@ impl fmt::Display for Error {
 }
 
 impl std::error::Error for Error {}
+
+impl From<io::Error> for Error {
+    fn from(e: io::Error) -> Self {
+        Self::Host(e)
+    }
+}
