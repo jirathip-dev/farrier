@@ -93,6 +93,9 @@ version = "0.1.0"
 name = "farrier-update"
 version = "0.1.0"
 dependencies = [
+ "blake2",
+ "ed25519-compact",
+ "farrier-service",
  "minisign-verify",
  "sha2",
 ]

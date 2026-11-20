@@ -21,16 +21,46 @@ pub enum Reject {
     Version(String),
 }
 
+impl Reject {
+    /// True only for a failure the next pass may not see again: a download.
+    #[must_use]
+    pub fn retry(&self) -> bool {
+        matches!(self, Self::Download(_))
+    }
+
+    /// The variant's name and its reason.
+    #[must_use]
+    pub fn parts(&self) -> (&'static str, &str) {
+        match self {
+            Self::NoAsset(why) => ("NoAsset", why),
+            Self::Download(why) => ("Download", why),
+            Self::Signature(why) => ("Signature", why),
+            Self::Checksum(why) => ("Checksum", why),
+            Self::CodeSign(why) => ("CodeSign", why),
+            Self::Version(why) => ("Version", why),
+        }
+    }
+
+    /// The reject [`Reject::parts`] names.
+    #[must_use]
+    pub fn from_parts(kind: &str, why: String) -> Option<Self> {
+        let make = match kind {
+            "NoAsset" => Self::NoAsset,
+            "Download" => Self::Download,
+            "Signature" => Self::Signature,
+            "Checksum" => Self::Checksum,
+            "CodeSign" => Self::CodeSign,
+            "Version" => Self::Version,
+            _ => return None,
+        };
+        Some(make(why))
+    }
+}
+
 impl fmt::Display for Reject {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::NoAsset(why) => write!(f, "NoAsset: {why}"),
-            Self::Download(why) => write!(f, "Download: {why}"),
-            Self::Signature(why) => write!(f, "Signature: {why}"),
-            Self::Checksum(why) => write!(f, "Checksum: {why}"),
-            Self::CodeSign(why) => write!(f, "CodeSign: {why}"),
-            Self::Version(why) => write!(f, "Version: {why}"),
-        }
+        let (kind, why) = self.parts();
+        write!(f, "{kind}: {why}")
     }
 }
 
@@ -140,4 +170,15 @@ pub fn version(out: &str) -> Option<Build> {
         .strip_suffix(')')?
         .rsplit_once('(')?;
     Build::parse(hex)
+}
+
+/// Checks that a `--version` output names `build`.
+pub fn names(out: &str, build: &Build) -> Result<(), Reject> {
+    match version(out) {
+        Some(named) if named.matches(build) => Ok(()),
+        _ => Err(Reject::Version(format!(
+            "--version names no build {build}: '{}'",
+            out.trim()
+        ))),
+    }
 }

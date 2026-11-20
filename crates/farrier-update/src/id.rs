@@ -48,6 +48,15 @@ pub enum Channel {
 }
 
 impl Channel {
+    /// The branch whose head this channel follows.
+    #[must_use]
+    pub fn branch(&self) -> &str {
+        match self {
+            Self::Main => "main",
+            Self::Branch(branch) => branch,
+        }
+    }
+
     /// The release tag of `build` on this channel.
     #[must_use]
     pub fn tag(&self, build: &Build) -> String {
