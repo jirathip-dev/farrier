@@ -110,15 +110,16 @@ fn every_fixture_release_gets_its_reject() {
             "other" => Some(&other),
             _ => None,
         };
+        let tag = field(&case, "tag").unwrap_or(TAG.to_owned());
         if let Some(key) = signer {
-            let comment = field(&case, "signed").unwrap_or(format!("{REPO} {TAG} {SHA}"));
+            let comment = field(&case, "signed").unwrap_or(format!("{REPO} {tag} {SHA}"));
             let sums = fs::read(dir.join("SHA256SUMS")).unwrap();
             fs::write(dir.join("SHA256SUMS.minisig"), key.sign(&sums, &comment)).unwrap();
         }
         let out = Command::new(env!("CARGO_BIN_EXE_farrier"))
             .args(["release", "verify"])
             .arg(&dir)
-            .args(["--repo", REPO, "--tag", TAG, "--sha", SHA, "--bin", "fx"])
+            .args(["--repo", REPO, "--tag", &tag, "--sha", SHA, "--bin", "fx"])
             .arg("--key")
             .arg(keys.join("release.pub"))
             .arg("--key")
@@ -148,6 +149,8 @@ fn every_fixture_release_gets_its_reject() {
             "no-signature",
             "other-build",
             "release-key",
+            "version-tag",
+            "version-tag-other",
             "wrong-checksum"
         ]
     );

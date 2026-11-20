@@ -52,8 +52,10 @@ fn parse(args: &[String]) -> Result<Args, String> {
     if !repo_ok {
         return Err(format!("--repo {repo}: not <owner>/<repo>"));
     }
-    if Channel::of_tag(&tag, &sha).is_none() {
-        return Err(format!("--tag {tag}: not a release tag of {sha}"));
+    if Channel::of_tag(&tag, &sha).is_none() && !is_version_tag(&tag) {
+        return Err(format!(
+            "--tag {tag}: neither a build tag of {sha} nor v<version>"
+        ));
     }
     if keys.is_empty() {
         return Err(USAGE.to_owned());
@@ -65,6 +67,14 @@ fn parse(args: &[String]) -> Result<Args, String> {
         sha,
         bin,
         keys,
+    })
+}
+
+fn is_version_tag(tag: &str) -> bool {
+    tag.strip_prefix('v').is_some_and(|v| {
+        v.starts_with(|c: char| c.is_ascii_digit())
+            && v.chars()
+                .all(|c| c.is_ascii_alphanumeric() || matches!(c, '.' | '-' | '+'))
     })
 }
 

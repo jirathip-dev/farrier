@@ -7,6 +7,9 @@ What a release must hold for `farrier-update` to install it, and how to check on
 - One release per commit, after CI ends green on a push to a release branch. Tag `build-<sha7>` on `main` (a
   normal release), `build-<branch>-<sha7>` on another branch (a prerelease, pruned after 14 days). Its target is
   the commit.
+- A release may carry a tag its caller names (`v<version>`), for a tool consumers pin by version. Assets,
+  `SHA256SUMS`, the signature and its trusted comment `<owner>/<repo> <tag> <sha40>` are unchanged. `farrier-update`
+  still finds a daemon's release by the build tag of its branch head.
 - Assets, never changed or added after the release is published:
   - `<bin>-<triple>`: the executable itself, not an archive. Triples `aarch64-apple-darwin`,
     `x86_64-unknown-linux-gnu`, and `x86_64-apple-darwin`, `aarch64-unknown-linux-gnu` when you build them. A
