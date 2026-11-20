@@ -1,0 +1,11 @@
+[Unit]
+Description=dev.shed.serve
+
+[Service]
+ExecStart=/home/me/.cargo/bin/shed serve
+Environment="PATH=/home/me/.cargo/bin:/home/me/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin"
+Restart=always
+OOMPolicy=continue
+
+[Install]
+WantedBy=default.target

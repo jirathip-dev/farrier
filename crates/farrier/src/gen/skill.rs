@@ -7,4 +7,8 @@ pub const FILES: &[(&str, &str)] = &[
         "contract.md",
         include_str!("../../../../skill/farrier/contract.md"),
     ),
+    (
+        "service.md",
+        include_str!("../../../../skill/farrier/service.md"),
+    ),
 ];

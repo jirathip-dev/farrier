@@ -1,0 +1,9 @@
+[Unit]
+Description=dev.cooee.cooee.update
+
+[Service]
+Type=oneshot
+ExecStart=/home/me/.cargo/bin/cooee update --instance cooee
+Environment="PATH=/home/me/.cargo/bin:/home/me/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin"
+StandardOutput=append:/home/me/.local/share/cooee/cooee/update.log
+StandardError=append:/home/me/.local/share/cooee/cooee/update.log

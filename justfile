@@ -18,6 +18,8 @@ check:
 # Every generated file (.drover/arch.toml `generated`); arch-check fails on a difference.
 gen:
     scripts/gen-skill.sh
+    rm -rf fixtures/units
+    cargo run -q --locked -p farrier-service --example units -- fixtures/units
 
 fmt:
     cargo fmt --check

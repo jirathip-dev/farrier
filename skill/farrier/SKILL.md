@@ -17,8 +17,9 @@ your `deny.toml`.
 
 ## Status
 
-`farrier release verify` and the release contract are in ([contract.md](contract.md)); `farrier-update` holds
-the contract (`contract`, `id`). `farrier-service` and the rest of `farrier-update` land in later releases. This
+`farrier-service` is in: [service.md](service.md) has each `Job` field, the plist and unit keys it writes, and
+the verbs. `farrier release verify` and the release contract are in ([contract.md](contract.md)); `farrier-update`
+holds the contract (`contract`, `id`). The rest of `farrier-update` lands in a later release. This
 page grows with each.
 
 ## Rules for callers

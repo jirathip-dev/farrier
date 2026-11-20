@@ -1,0 +1,10 @@
+[Unit]
+Description=dev.drover.clean
+
+[Timer]
+OnActiveSec=0
+OnCalendar=*-*-* 03:30:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target
