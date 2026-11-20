@@ -74,9 +74,9 @@ gate_arch() {
   git -C "$t" add -A
   git -C "$t" -c user.name=fixture -c user.email=fixture@example.invalid commit -qm fixture
   run pass "arch: the clean copy" bash -c 'cd "$1" && "$2" arch-check' _ "$t" "$drover"
-  cp "$fx/arch/process.rs" "$t/crates/farrier-service/src/job.rs"
-  run 'Command::new' "arch: $fx/arch/process.rs as farrier-service's job.rs" bash -c 'cd "$1" && git add -A && "$2" arch-check' _ "$t" "$drover"
-  git -C "$t" rm -qf crates/farrier-service/src/job.rs
+  cp "$fx/arch/process.rs" "$t/crates/farrier-service/src/stray.rs"
+  run 'Command::new' "arch: $fx/arch/process.rs as farrier-service's stray.rs" bash -c 'cd "$1" && git add -A && "$2" arch-check' _ "$t" "$drover"
+  git -C "$t" rm -qf crates/farrier-service/src/stray.rs
   cp "$fx/arch/stale-skill.rs" "$t/crates/farrier/src/gen/skill.rs"
   run 'differs from what' "arch: $fx/arch/stale-skill.rs as the generated skill list" bash -c 'cd "$1" && git add -A && "$2" arch-check' _ "$t" "$drover"
 }

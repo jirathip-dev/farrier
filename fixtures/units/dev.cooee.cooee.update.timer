@@ -1,0 +1,9 @@
+[Unit]
+Description=dev.cooee.cooee.update
+
+[Timer]
+OnActiveSec=0
+OnUnitActiveSec=900
+
+[Install]
+WantedBy=timers.target

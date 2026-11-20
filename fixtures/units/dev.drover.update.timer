@@ -1,0 +1,9 @@
+[Unit]
+Description=dev.drover.update
+
+[Timer]
+OnActiveSec=0
+OnUnitActiveSec=300
+
+[Install]
+WantedBy=timers.target
