@@ -1,0 +1,4 @@
+# The line cap `drover cap-check --config ci/cap.toml` enforces: formatted lines of crates/*/src/**/*.rs, tests not counted. Raises go in ci/cap.d/.
+[fleet.farrier]
+line_cap = 2000
+warn_within = 500
