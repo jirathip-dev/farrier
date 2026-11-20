@@ -4,7 +4,7 @@
 
 Decision: two library crates and one small tool. The service crate writes, loads, restarts and removes a launchd or systemd job from one typed description. The update crate finds the release of a branch's head, verifies it (signed checksum list, checksum, macOS code signature, the build it reports), swaps it in with one rename, restarts the daemon, and puts the old binary back if the new one does not serve. drover's several-host rollout stays in drover and drives the same two steps (stage, swap) on each host.
 Slices: (1) the repo with every gate and the skill command; (2) the service crate; (3) the release contract and its checker; (4) the update crate; (5) adoption in cooee, then shed, then drover, two PRs each; beacon's CLI later.
-Open questions: (1) The signature needs one new release secret, a signing key whose public half is compiled into each daemon: approve it (recommended), or use GitHub's keyless attestations (no secret, but every host then needs the GitHub CLI signed in), or keep Linux builds unsigned as today?
+Open questions: none. The owner decided the signature (Amendment, 2026-11-20): a minisign key, plus a second, offline backup public key compiled in from the first release; farrier cuts its own first releases and moves to gatekeeper's release workflow once that ships.
 
 The decision and its reasons: [adr.md](adr.md). The release layout shared with gatekeeper: [contract.md](contract.md).
 What each consumer deletes, the order, and the agent-speed criteria: [adoption.md](adoption.md).
@@ -51,7 +51,7 @@ pub fn install(force: bool) -> anyhow::Result<()> {
 const SHED: Product = Product {
     bin: "shed",
     repo: "jirathip-dev/shed",
-    keys: &[include_str!("../release.pub")],
+    keys: &[include_str!("../release.pub"), include_str!("../release-backup.pub")],
     codesign_id: Some("shed"),
 };
 

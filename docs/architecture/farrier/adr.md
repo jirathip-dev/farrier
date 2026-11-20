@@ -4,9 +4,9 @@
 
 Decision: two library crates and one small tool. The service crate writes, loads, restarts and removes a launchd or systemd job from one typed description. The update crate finds the release of a branch's head, verifies it (signed checksum list, checksum, macOS code signature, the build it reports), swaps it in with one rename, restarts the daemon, and puts the old binary back if the new one does not serve. drover's several-host rollout stays in drover and drives the same two steps (stage, swap) on each host.
 Slices: (1) the repo with every gate and the skill command; (2) the service crate; (3) the release contract and its checker; (4) the update crate; (5) adoption in cooee, then shed, then drover, two PRs each; beacon's CLI later.
-Open questions: (1) The signature needs one new release secret, a signing key whose public half is compiled into each daemon: approve it (recommended), or use GitHub's keyless attestations (no secret, but every host then needs the GitHub CLI signed in), or keep Linux builds unsigned as today?
+Open questions: none. The owner decided the signature (Amendment, 2026-11-20): a minisign key, plus a second, offline backup public key compiled in from the first release; farrier cuts its own first releases and moves to gatekeeper's release workflow once that ships.
 
-**Status:** proposed, 2026-11-20. Usage, shapes, boundaries and statecharts: [README.md](README.md). The release
+**Status:** approved by the owner, 2026-11-20, with the signing-key Amendment folded in. Usage, shapes, boundaries and statecharts: [README.md](README.md). The release
 layout: [contract.md](contract.md). Inventory, order and the agent-speed criteria: [adoption.md](adoption.md).
 
 ## The question
@@ -53,7 +53,7 @@ of order step a host back, and it cannot name a branch's prerelease. The commits
 | | option | verdict |
 |---|---|---|
 | A | none: TLS, the checksum list, macOS code signing | as today; a Linux build is unsigned, and the checksum list is as trusted as the download beside it |
-| B | **a minisign signature of `SHA256SUMS`, public keys compiled in** | chosen, if the owner approves the secret: verified in process on both platforms by `minisign-verify` (MIT, no dependencies); its signed comment ties the list to one repo, tag and commit |
+| B | **a minisign signature of `SHA256SUMS`, public keys compiled in** | chosen (owner, Amendment): two public keys compiled in from the first release, the release key and an offline backup; verified in process on both platforms by `minisign-verify` (MIT, no dependencies); its signed comment ties the list to one repo, tag and commit |
 | C | GitHub artifact attestations | no secret to hold, but verifying needs the GitHub CLI and a token on every host, or a large verifier in every daemon |
 | D | a signature per asset | more files and the same trust as B |
 
@@ -107,9 +107,8 @@ are.
   build failed for a download error.
 - **The signature is switched on in order.** First gatekeeper's workflow publishes `SHA256SUMS.minisig` (old
   updaters ignore it). Then a consumer adopts `farrier-update` with the public key compiled in; from that build on
-  the signature is required. The reverse order would strand hosts. The open question settles slice 3: with
-  "unsigned as today", `Product.keys`, `Reject::Signature` and check 3 of the contract are left out, not switched
-  off.
+  the signature is required. The reverse order would strand hosts. Both public keys, the release key and the
+  offline backup, are in that first build, so losing the release key never needs a manual hop.
 - **No manual hop.** The tags, asset names and `--version` form stay as they are, so each host's old updater
   installs the first farrier build.
 - **One name per job, so shed's Linux units are renamed** (`shed.service` to `dev.shed.serve.service`) through
@@ -123,7 +122,8 @@ are.
 - **drover's remote hosts update through their own binary.** A host whose binary predates the `--phase` verb is
   caught up once by the fetch-and-copy path that also starts new hosts.
 - **farrier depends on gatekeeper for nothing at build time**, and gatekeeper only runs the released `farrier`
-  tool. So farrier publishes its own releases under the same contract, and its CI checks them with itself.
+  tool. So farrier cuts its own first releases, under the same contract and signed with the same key, and its CI
+  checks them with itself; once gatekeeper's release workflow ships, farrier moves to it like every consumer.
 - **Size.** About 1,650 lines in farrier (cap 2,000) against about 1,200 leaving the three consumers: more code in
   total, because every consumer gains what only one had, and the next fix lands once. The numbers per file are in
   [adoption.md](adoption.md).

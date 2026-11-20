@@ -46,14 +46,24 @@ Any failure removes the staged file and leaves the live binary as it was.
 
 ## Keys
 
-- One signing key for the fleet's releases, held as a secret of the workflow's `release` environment beside the
-  code-signing secrets. Its public half is a file in each consumer repo (`release.pub`), compiled in.
-- `Product.keys` is a list, so a key is rotated in two releases: one that trusts both keys, then one signed with
-  the new key.
+- Two minisign keys, both public halves compiled into every build from a consumer's first farrier release on
+  (`Product.keys`, two files in each consumer repo):
+  - the release key (`release.pub`): its secret half is a secret of the workflow's `release` environment beside
+    the code-signing secrets, and signs every release;
+  - the backup key (`release-backup.pub`): its secret half is kept offline by the owner, never in CI or on a host,
+    and signs nothing until the release key is lost or leaked.
+- The release key lost or leaked: the owner signs one release with the backup key by hand. That release trusts the
+  backup and a new release key and drops the old one; the next releases are signed in CI with the new key, and a
+  new offline backup is added the same way. Hosts follow with no manual hop, because the backup was compiled in
+  before it was needed.
+- A planned rotation is two releases: one that trusts the old and the new key (plus the backup), then one signed
+  with the new key.
+- farrier cuts its own first releases with this contract and these keys (slice 3), and moves to gatekeeper's
+  release workflow once that ships.
 
 ## The checker
 
-`farrier release verify <dir> --repo <owner>/<repo> --tag <tag> --sha <sha40> --bin <bin> --key <release.pub>`
-runs every check the folder allows and exits nonzero on the first failure: 2 to 4 once `SHA256SUMS` is there, 5 and
+`farrier release verify <dir> --repo <owner>/<repo> --tag <tag> --sha <sha40> --bin <bin> --key <release.pub> --key <release-backup.pub>`
+runs every check the folder allows and exits nonzero on the first failure (a signature by any `--key` passes check 3): 2 to 4 once `SHA256SUMS` is there, 5 and
 6 for the assets of the runner's own triple. gatekeeper's workflow runs it twice: in each build job on that job's
 asset, and in the publish job after signing. A release that farrier would reject is never published.

@@ -40,7 +40,7 @@ The callers' code for each is in [README.md](README.md).
 |---|---|---|---|
 | F1 | farrier | workspace, every gate green on an empty crate, `farrier skill --to` | nothing |
 | F2 | farrier | `farrier-service`, a golden file for every consumer job | F1 |
-| F3 | farrier | the contract, `farrier release verify`, farrier's own releases | F1, the owner's answer on the key |
+| F3 | farrier | the contract, `farrier release verify`, farrier's own first releases, signed with the release key, the offline backup key compiled in | F1 |
 | F4 | farrier | `farrier-update`: the machine, `Supervised`, `phase`, `fetch` | F2, F3 |
 | G1 | gatekeeper | its release workflow signs `SHA256SUMS` and runs the checker (gatekeeper's issue) | F3 |
 | C1, C2 | cooee | service, then update | F2; F4 and G1 |
