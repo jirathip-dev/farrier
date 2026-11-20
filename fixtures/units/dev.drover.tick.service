@@ -1,0 +1,9 @@
+[Unit]
+Description=dev.drover.tick
+
+[Service]
+Type=oneshot
+ExecStart=/home/me/.cargo/bin/drover tick
+Environment="PATH=/home/me/.cargo/bin:/home/me/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin"
+StandardOutput=append:/home/me/.local/state/drover/tick.log
+StandardError=append:/home/me/.local/state/drover/tick.log

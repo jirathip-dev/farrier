@@ -1,0 +1,12 @@
+[Unit]
+Description=dev.drover.serve
+
+[Service]
+ExecStart=/home/me/.cargo/bin/drover serve --addr 127.0.0.1:7777
+Environment="PATH=/home/me/.cargo/bin:/home/me/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin"
+Restart=on-failure
+StandardOutput=append:/home/me/.local/state/drover/serve.log
+StandardError=append:/home/me/.local/state/drover/serve.log
+
+[Install]
+WantedBy=default.target

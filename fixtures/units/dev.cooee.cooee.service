@@ -1,0 +1,12 @@
+[Unit]
+Description=dev.cooee.cooee
+
+[Service]
+ExecStart=/home/me/.cargo/bin/cooee serve --instance cooee
+Environment="PATH=/home/me/.cargo/bin:/home/me/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin"
+Restart=always
+StandardOutput=append:/home/me/.local/share/cooee/cooee/cooee.log
+StandardError=append:/home/me/.local/share/cooee/cooee/cooee.log
+
+[Install]
+WantedBy=default.target

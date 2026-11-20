@@ -1,0 +1,7 @@
+[Unit]
+Description=dev.shed.update
+
+[Service]
+Type=oneshot
+ExecStart=/home/me/.cargo/bin/shed self-update
+Environment="PATH=/home/me/.cargo/bin:/home/me/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin"
