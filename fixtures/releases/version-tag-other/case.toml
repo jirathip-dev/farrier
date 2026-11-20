@@ -1,0 +1,4 @@
+reject = "Signature"
+key = "release"
+tag = "v1.2.0"
+signed = "example/fx v1.1.0 0123456789abcdef0123456789abcdef01234567"
