@@ -1,0 +1,8 @@
+name: fixture
+on: push
+jobs:
+  a:
+    runs-on: ubuntu-latest
+    timeout-minute: 5
+    steps:
+      - run: "true"

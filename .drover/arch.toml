@@ -1,4 +1,6 @@
 frozen = ["ci/cap.toml"]
+generated = ["fixtures/units/*", "skill/farrier/examples/*.md", "crates/farrier/src/gen/skill.rs"]
+generate = "just gen"
 
 [[collect]]
 dir = "ci/cap.d"
