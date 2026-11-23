@@ -10,6 +10,6 @@ mod job;
 mod render;
 mod service;
 
-pub use env::{Env, Platform};
+pub use env::{Env, Platform, Runner};
 pub use job::{Error, Job, Label, Launchd, Log, ProcessType, Restart, Schedule, Systemd};
 pub use service::{Commands, Files, Installed, Removed, Service, Status};

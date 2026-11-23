@@ -131,6 +131,8 @@ fn main() -> Result<(), Box<dyn Error>> {
             uid: 501,
             tools: "/usr/bin:/bin".into(),
             backoff: Duration::ZERO,
+            runner: None,
+            limit: Duration::ZERO,
             home,
         };
         let h = env.home.display();

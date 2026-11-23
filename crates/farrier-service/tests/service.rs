@@ -73,6 +73,8 @@ impl Host {
             uid: 501,
             tools: format!("{}:/usr/bin:/bin", bin.display()).into(),
             backoff: Duration::ZERO,
+            runner: None,
+            limit: Duration::ZERO,
         };
         Self { dir, env }
     }

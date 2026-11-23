@@ -474,6 +474,8 @@ fn a_supervised_service_that_fails_to_restart_is_rolled_back() {
         uid: 501,
         tools: h.dir.join("no-tools").into(),
         backoff: Duration::ZERO,
+        runner: None,
+        limit: Duration::ZERO,
     };
     let job = Job::new(
         "dev.example.fx",
