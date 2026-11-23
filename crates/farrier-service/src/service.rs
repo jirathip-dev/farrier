@@ -278,7 +278,12 @@ impl Service {
                 text: String::new(),
             });
         };
-        ctl::run(&self.env.tools, tool, args)
+        let Some(runner) = &self.env.runner else {
+            return ctl::run(&self.env.tools, tool, args);
+        };
+        let (ok, text) = (runner.0)(tool, args, self.env.limit)
+            .map_err(|e| Error::Ctl(cmd.join(" "), e.to_string()))?;
+        Ok(Said { ok, text })
     }
 
     fn each(&self, verb: Verb, strict: bool) -> Result<(), Error> {

@@ -1,7 +1,9 @@
 use std::ffi::OsString;
+use std::fmt;
 use std::io;
 use std::os::unix::fs::MetadataExt;
 use std::path::PathBuf;
+use std::sync::Arc;
 use std::time::Duration;
 
 /// Which job manager a host runs.
@@ -20,7 +22,29 @@ pub struct Env {
     pub uid: u32,
     pub tools: OsString,
     pub backoff: Duration,
+    pub runner: Option<Runner>,
+    pub limit: Duration,
 }
+
+/// Runs one control command (tool, arguments, time limit) to its success and stdout then stderr.
+#[derive(Clone)]
+pub struct Runner(pub Arc<Run>);
+
+type Run = dyn Fn(&str, &[String], Duration) -> io::Result<(bool, String)> + Send + Sync;
+
+impl fmt::Debug for Runner {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("Runner")
+    }
+}
+
+impl PartialEq for Runner {
+    fn eq(&self, _: &Self) -> bool {
+        true
+    }
+}
+
+impl Eq for Runner {}
 
 impl Env {
     /// This host: its platform, `HOME`, `XDG_CONFIG_HOME`, the home folder's owner and `PATH`.
@@ -50,6 +74,8 @@ impl Env {
             uid,
             tools: std::env::var_os("PATH").unwrap_or_else(|| "/usr/bin:/bin".into()),
             backoff: Duration::from_secs(1),
+            runner: None,
+            limit: Duration::from_secs(30),
         })
     }
 }

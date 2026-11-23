@@ -97,4 +97,8 @@ launchd domain `gui/<uid>`) and `PATH` (where `launchctl` and `systemctl` are fo
 over a temp folder with stub `launchctl` or `systemctl` on `tools` and a zero `backoff`, so both platforms run on
 every OS without a real job manager or a clock.
 
+A caller that starts every process itself sets `runner` to a `Runner`: each `launchctl` or `systemctl` command then
+goes to it with its arguments and `limit` (30 s from `Env::host()`, which leaves `runner` unset), and its error or
+time-out is `Error::Ctl` naming the command. `Env` equality ignores which runner is set.
+
 The rendered texts of every job the consumers install are in farrier's `fixtures/units/` (`just gen`).
