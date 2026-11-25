@@ -31,6 +31,7 @@ clippy:
 
 # Each crate's tests timed on their own against ci/budget.toml, after one build.
 test:
+    cargo fetch --locked
     cargo test --workspace --locked --no-run
     scripts/timed.sh test-farrier-service cargo test --locked -q -p farrier-service
     scripts/timed.sh test-farrier-update cargo test --locked -q -p farrier-update
