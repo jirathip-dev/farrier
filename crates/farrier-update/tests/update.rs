@@ -626,6 +626,10 @@ fn farrier_update_adds_at_most_twelve_crates_to_a_lock_file() {
     let out = Command::new(env!("CARGO"))
         .args(["tree", "--locked", "--offline", "-p", "farrier-update"])
         .args(["-e", "normal", "--target", "all", "--prefix", "none"])
+        .env(
+            "CARGO_HOME",
+            Path::new(env!("CARGO_TARGET_TMPDIR")).join("cold-cargo-home"),
+        )
         .current_dir(env!("CARGO_MANIFEST_DIR"))
         .output()
         .unwrap();
