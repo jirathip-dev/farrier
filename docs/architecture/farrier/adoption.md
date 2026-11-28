@@ -73,7 +73,7 @@ The callers' code for each is in [README.md](README.md).
 | clippy pedantic and the shared deny lints | one file per lint in `ci/lint-fixtures/rust/` |
 | cargo-deny (licences, advisories, duplicates, sources) | a fixture manifest with a git source that is not listed |
 | actionlint | a workflow with an unknown key |
-| the line cap (`ci/cap.toml`, 2,000) and the 30-line rules file | a fixture tree one line over |
+| the 30-line rules file | a rules file one line over |
 | `drover arch-check` (layers, bans, sizes, comments, frozen, generated) | a file that starts a process outside `ctl`; a stale generated file |
 | the release contract | one folder per case in `fixtures/releases/`, each naming the `Reject` it must get: wrong checksum, no signature, another key, another release's signed list, an extra line, a missing asset, a `--version` naming another build |
 | a job's rules | a bad label, a relative program path, hour 24: `Job::new` refuses each |

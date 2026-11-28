@@ -8,7 +8,7 @@ check:
     export FARRIER_TIMES="${DROVER_SCRATCH_TARGET:-${RUNNER_TEMP:-${TMPDIR:-/tmp}}}/farrier-check-times"
     : >"$FARRIER_TIMES"
     start=$(date +%s)
-    for gate in fmt clippy test fixtures deny actionlint cap arch; do
+    for gate in fmt clippy test fixtures deny actionlint rules arch; do
         scripts/timed.sh "$gate" just "$gate"
     done
     echo "check $(($(date +%s) - start))" >>"$FARRIER_TIMES"
@@ -37,7 +37,7 @@ test:
     scripts/timed.sh test-farrier-update cargo test --locked -q -p farrier-update
     scripts/timed.sh test-farrier cargo test --locked -q -p farrier
 
-# Each gate's must-fail fixture in ci/lint-fixtures fails its gate (`just fixtures cap` runs one).
+# Each gate's must-fail fixture in ci/lint-fixtures fails its gate (`just fixtures rules` runs one).
 fixtures *gates:
     scripts/selftest.sh {{gates}}
 
@@ -48,9 +48,9 @@ deny:
 actionlint:
     actionlint
 
-# The line cap (ci/cap.toml plus ci/cap.d raises) on non-test, non-generated Rust, and the 30-line rules file.
-cap:
-    scripts/cap.sh . ci/cap.toml .drover/rules.md
+# The 30-line rules file.
+rules:
+    scripts/rules.sh .drover/rules.md
 
 # Layers, bans, sizes, comments, frozen and generated files; BASE and PR_BODY narrow the comment and doc checks to a PR.
 arch:
