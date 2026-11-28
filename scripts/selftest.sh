@@ -61,10 +61,9 @@ gate_deny() {
 gate_actionlint() {
   run 'unexpected key "timeout-minute"' "actionlint: $fx/actionlint/unknown-key.yml" actionlint "$fx/actionlint/unknown-key.yml"
 }
-gate_cap() {
-  run pass "cap: $fx/cap at the cap" sh scripts/cap.sh "$fx/cap/tree" "$fx/cap/at.toml" "$fx/cap/rules-30.md"
-  run 'over the cap' "cap: $fx/cap one line over" sh scripts/cap.sh "$fx/cap/tree" "$fx/cap/over.toml" "$fx/cap/rules-30.md"
-  run 'over 30' "cap: $fx/cap/rules-31.md" sh scripts/cap.sh "$fx/cap/tree" "$fx/cap/at.toml" "$fx/cap/rules-31.md"
+gate_rules() {
+  run pass "rules: .drover/rules.md" sh scripts/rules.sh .drover/rules.md
+  run 'over 30' "rules: $fx/rules/rules-31.md" sh scripts/rules.sh "$fx/rules/rules-31.md"
 }
 gate_arch() {
   local t drover=${DROVER:-drover}
@@ -83,7 +82,7 @@ gate_arch() {
 gate_budget() {
   run 'over budget' "budget: $fx/budget/over.times" sh scripts/budget.sh "$fx/budget/over.times"
 }
-for gate in "${@:-fmt clippy deny actionlint cap arch budget}"; do
+for gate in "${@:-fmt clippy deny actionlint rules arch budget}"; do
   for g in $gate; do "gate_$g"; done
 done
 exit "$bad"

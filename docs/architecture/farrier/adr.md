@@ -137,13 +137,8 @@ are.
 farrier's own, added in slice 1 with the first code:
 
 ```toml
-frozen = ["ci/cap.toml"]
 generated = ["fixtures/units/*", "skill/farrier/examples/*.md", "crates/farrier/src/gen/skill.rs"]
 generate = "just gen"
-
-[[collect]]
-dir = "ci/cap.d"
-glob = "*.toml"
 
 [[collect]]
 dir = "fixtures/releases"
